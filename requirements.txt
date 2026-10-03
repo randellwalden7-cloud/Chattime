@@ -1,0 +1,5 @@
+streamlit>=1.45,<2
+openai>=1.80,<3
+ollama>=0.5,<1
+python-dotenv>=1,<2
+tavily-python>=0.7,<1
