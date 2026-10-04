@@ -56,6 +56,7 @@ def checkout(db, username):
             return session.url
     url = os.environ['PUBLIC_URL'].rstrip('/')
     session = client().v1.checkout.sessions.create({'mode':'subscription','customer':cid,
+        'managed_payments':{'enabled':True},
         'client_reference_id':username,'line_items':[{'price':PRICE,'quantity':1}],
         'success_url':url+'/?payment=returned','cancel_url':url,
         'integration_identifier':'chattime_'+''.join(secrets.choice(string.ascii_lowercase) for _ in range(8))})
