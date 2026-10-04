@@ -1,4 +1,6 @@
 import os
+import json
+import streamlit.components.v1 as components
 import sqlite3
 import time
 import streamlit as st
@@ -99,6 +101,82 @@ history = db.load(username, engine)
 transcript = '\n\n'.join(f"{r['role'].upper()}: {r['content']}" for r in history)
 st.sidebar.download_button('Export transcript', transcript, 'chattime-chat.txt', 'text/plain')
 st.sidebar.caption(f"Recorded tokens: {sum(r['input_tokens'] + r['output_tokens'] for r in history):,}")
+
+# Playback starts on a user click to satisfy browser audio policies.
+answers = [r for r in history if r['role'] == 'assistant']
+with st.expander('Voice reader', expanded=True):
+    st.caption('Choose a reply and press Read aloud. Voices depend on your device.')
+    if answers:
+        selected = st.selectbox('Reply to read', list(range(len(answers))),
+            index=len(answers)-1, format_func=lambda i: answers[i]['content'][:80])
+        speech_text = answers[selected]['content']
+    else:
+        speech_text = 'Hello! Chattime Assistant voice playback is ready.'
+    payload = json.dumps(speech_text).replace('<', '\\u003c')
+    components.html(r"""
+<style>
+body{font:16px sans-serif;color:#f8fafc;background:#0f172a}
+button,select{min-height:44px;margin:4px;padding:8px;border-radius:8px}
+button{background:#38bdf8;color:#0f172a;border:0}select{max-width:95%}
+</style>
+<label for="voice">Voice </label><select id="voice"><option value="">Device default</option></select>
+<br><label for="speed">Speed </label><input id="speed" type="range" min="0.5" max="1.5" step="0.1" value="1"><output id="rate">1×</output>
+<br><button id="read">Read aloud</button><button id="test">Test sound</button>
+<button id="pause">Pause</button><button id="resume">Resume</button><button id="stop">Stop</button>
+<p id="status" role="status" aria-live="polite">Press Test sound to check your speakers.</p>
+<script>
+const text = """ + payload + r""";
+const status = document.getElementById('status');
+const synth = window.speechSynthesis;
+const picker = document.getElementById('voice');
+let voices = [], active = null, generation = 0;
+if (!synth) {
+  status.textContent = 'Voice playback is unavailable in this browser. Open Chattime in Chrome or Edge.';
+  document.querySelectorAll('button').forEach(b => b.disabled = true);
+} else {
+  function loadVoices() {
+    const previous = picker.value;
+    voices = synth.getVoices();
+    picker.replaceChildren(new Option('Device default', ''));
+    voices.forEach(v => picker.add(new Option(v.name + ' (' + v.lang + ')', v.voiceURI)));
+    if (voices.some(v => v.voiceURI === previous)) picker.value = previous;
+  }
+  loadVoices();
+  synth.addEventListener('voiceschanged', loadVoices);
+  function stop() { generation++; synth.cancel(); active = null; }
+  function read(value) {
+    stop();
+    const token = generation;
+    const chunks = value.match(/[\s\S]{1,220}(?:\s|$)|[\s\S]{1,220}/g) || [];
+    let index = 0;
+    function next() {
+      if (token !== generation) return;
+      if (index >= chunks.length) { status.textContent = 'Finished'; active = null; return; }
+      active = new SpeechSynthesisUtterance(chunks[index++]);
+      active.voice = voices.find(v => v.voiceURI === picker.value) || null;
+      active.rate = Number(document.getElementById('speed').value);
+      active.volume = 1;
+      active.onstart = () => { status.textContent = 'Speaking'; };
+      active.onend = next;
+      active.onerror = e => {
+        if (token === generation) status.textContent = 'Playback failed: ' + e.error + '. Try Test sound or another voice.';
+      };
+      synth.speak(active);
+    }
+    status.textContent = 'Starting voice…';
+    next();
+  }
+  document.getElementById('read').onclick = () => read(text);
+  document.getElementById('test').onclick = () => read('Hello! This is Chattime Assistant. Your sound is working.');
+  document.getElementById('pause').onclick = () => { synth.pause(); status.textContent = 'Paused'; };
+  document.getElementById('resume').onclick = () => { synth.resume(); status.textContent = 'Resuming'; };
+  document.getElementById('stop').onclick = () => { stop(); status.textContent = 'Stopped'; };
+  window.addEventListener('pagehide', stop);
+}
+document.getElementById('speed').oninput = e => { document.getElementById('rate').textContent = e.target.value + '×'; };
+</script>
+""", height=245)
+
 for message in history:
     with st.chat_message(message['role']):
         st.markdown(message['content'])
