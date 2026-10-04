@@ -3,3 +3,7 @@ openai>=1.80,<3
 ollama>=0.5,<1
 python-dotenv>=1,<2
 tavily-python>=0.7,<1
+
+stripe==15.6.0
+fastapi>=0.115,<1
+uvicorn>=0.34,<1

@@ -5,6 +5,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from core import run_agent
 from storage import Storage
+import billing
 
 load_dotenv()
 st.set_page_config(page_title='Chattime Assistant', page_icon='💬', layout='wide')
@@ -49,6 +50,35 @@ if 'username' not in st.session_state:
     st.stop()
 
 username = st.session_state.username
+if st.sidebar.button('Sign out', key='membership-signout'):
+    st.session_state.clear()
+    st.rerun()
+try:
+    paid = billing.allowed(db, username)
+except Exception:
+    paid = False
+    st.warning('Membership verification is temporarily unavailable. Please retry; do not pay again.')
+if not paid:
+    st.subheader('Chattime membership — $9.99/month')
+    st.write('Sign in with this same account after payment. Your membership renews monthly until canceled.')
+    if not billing.configured():
+        st.info('Payment setup is in progress. Subscriptions and chat are not open yet.')
+    else:
+        if st.button('Subscribe for $9.99/month'):
+            try:
+                st.link_button('Continue to secure Stripe Checkout', billing.checkout(db, username))
+            except ValueError as error:
+                st.info(str(error))
+            except Exception:
+                st.error('Checkout could not open. Please retry later.')
+        if st.button('Refresh membership'):
+            st.rerun()
+    st.stop()
+if st.sidebar.button('Manage subscription'):
+    try:
+        st.sidebar.link_button('Open Stripe customer portal', billing.portal(db, username))
+    except Exception:
+        st.sidebar.error('Subscription management is unavailable. Please retry later.')
 with st.sidebar:
     st.subheader(username)
     engine = st.radio('Engine', ['cloud', 'local'], format_func=lambda x: {'cloud':'OpenAI Cloud', 'local':'Ollama Local'}[x])

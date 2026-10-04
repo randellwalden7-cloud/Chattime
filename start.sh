@@ -3,4 +3,4 @@ set -eu
 # Railway mounts persistent volumes as root. Drop privileges before serving.
 mkdir -p /app/data
 chown chattime:chattime /app/data
-exec su chattime -s /bin/sh -c 'exec python -m streamlit run app.py --server.port=8501 --server.address=0.0.0.0'
+exec python start_server.py

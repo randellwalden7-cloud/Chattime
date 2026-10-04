@@ -60,3 +60,15 @@ provider for completed requests; failed requests may still incur charges.
 ```sh
 python -m unittest discover -s tests -v
 ```
+
+## Paid membership deployment
+
+Chattime has a separate live Stripe price `price_1UMcoaCXGbHoNc8PHTVIs3nD` for $9.99 USD/month in the Family International Home Builders LLC merchant account. No existing subscriptions are changed.
+
+Set Railway secrets `STRIPE_API_KEY` (a restricted key with Customers read/write, Checkout Sessions read/write, Subscriptions read, Invoices read, Prices read, and Customer Portal write), `STRIPE_WEBHOOK_SECRET`, and `OPENAI_API_KEY`. Set `PUBLIC_URL` to the app HTTPS URL and `STRIPE_PRICE_ID` to the price above. Never commit credentials.
+
+Register `/billing/webhook` in Stripe for customer.subscription.created, updated, deleted; invoice.paid, invoice.payment_failed; checkout.session.completed and checkout.session.async_payment_succeeded. Use the endpoint's signing secret. The app stays locked while payment configuration is missing. Paid access requires an active live subscription, a paid latest invoice, and the exact Chattime price. Server-side subscription checks on each rerun protect returning customers and handle delayed events. Signed webhook events retrieve current state so retries and event ordering cannot grant stale access. Configure the Stripe customer portal for subscription cancellation and payment method changes.
+
+Nginx listens on port 8501 and routes the UI and signed webhook handler to internal services. Persist `/app/data`; use one replica with this SQLite baseline. This is not the entire enterprise blueprint: no strict monthly token quota, OAuth, RAG, or enterprise integrations are provided yet. Stripe Tax is not enabled; review applicable tax registrations before collecting tax.
+
+Run all tests with `python -m unittest discover -v`.

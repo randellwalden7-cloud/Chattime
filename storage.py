@@ -19,6 +19,9 @@ class Storage:
                     role TEXT NOT NULL, content TEXT NOT NULL,
                     input_tokens INTEGER DEFAULT 0, output_tokens INTEGER DEFAULT 0,
                     created TEXT DEFAULT CURRENT_TIMESTAMP);
+                CREATE TABLE IF NOT EXISTS memberships (
+                    username TEXT PRIMARY KEY REFERENCES users(username),
+                    customer TEXT UNIQUE NOT NULL, expires INTEGER DEFAULT 0);
                 CREATE TABLE IF NOT EXISTS feedback (
                     message_id INTEGER PRIMARY KEY REFERENCES messages(id) ON DELETE CASCADE,
                     value INTEGER NOT NULL CHECK (value IN (0,1)));
