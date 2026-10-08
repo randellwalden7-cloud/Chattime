@@ -17,6 +17,8 @@ h1{color:#38bdf8}div[data-testid="stChatMessage"]{border:1px solid #334155;borde
             unsafe_allow_html=True)
 db = Storage(os.getenv('CHATTIME_DB', 'data/chattime.db'))
 st.title('Chattime Assistant')
+st.markdown('''<a href="https://www.biblegateway.com/passage/?search=Genesis%201&amp;version=KJV" target="_blank" rel="noopener noreferrer" aria-label="Open the King James Bible in a new tab" style="display:inline-flex;align-items:center;gap:12px;max-width:100%;box-sizing:border-box;padding:14px 18px;margin:8px 0 16px;border:1px solid #f5d77a;border-radius:12px;background:#142238;color:#fff4ca;text-decoration:none"><span aria-hidden="true" style="font-size:24px">📖</span><span><strong>King James Bible</strong><br><span style="font-size:13px">Read the KJV · Opens in a new tab ↗</span></span></a>''', unsafe_allow_html=True)
+
 
 if 'username' not in st.session_state:
     login, register = st.tabs(['Sign in', 'Create account'])
